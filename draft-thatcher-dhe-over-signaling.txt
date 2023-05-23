@@ -1,0 +1,153 @@
+
+
+
+
+Independent Submission                                       P. Thatcher
+Internet-Draft                                                 Microsoft
+Intended status: Informational                               23 May 2023
+Expires: 24 November 2023
+
+
+                           DHE over signaling
+                draft-thatcher-dhe-over-signaling-latest
+
+Abstract
+
+   This document proposes how two peers can do a Diffie-Helman Exchange
+   over signaling to avoid round trips.  For example, WebRTC peers can
+   create DTLS and DTLS-SRTP keys without the need for doing a Diffie-
+   Helman Exchange via DTLS round trips.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 24 November 2023.
+
+Copyright Notice
+
+   Copyright (c) 2023 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction
+   2.  Using out-of-band signaling (no SDP)
+   3.  Using SDP
+   4.  Generating keys from DHE and HKDF
+   Contributors
+   Author's Address
+
+1.  Introduction
+
+   WebRTC uses DTLS for data channels and DTLS-SRTP to negotiate SRTP
+   keys.  This requires a DTLS handshake, which requires extra round
+   trips.  Can we have avoid these roundtrips by doing a Diffie-Helman
+   Exchange over signaling.  We can also use these technique for other
+   protocols that do a Diffie-Helman Exchange after doing signaling,
+   such as if endpoints do QUIC p2p.
+
+2.  Using out-of-band signaling (no SDP)
+
+   Endpoints that implement this technique send the following pieces of
+   information over signaling:
+
+   1.  DHE algorithm
+
+   2.  DHE public key
+
+   3.  HKDF salt
+
+   4.  HKDF info fragment
+
+   5.  Which endpoint is "first"
+
+   6.  SRTP profile (if needed for SRTP)
+
+   If these pieces of information are signaling from both sides, then
+   the endpoints use a Diffie-Helman exchange followed by an HDKF
+   expansion to generate the master key material for DTLS (or QUIC or
+   other protocol).  The endpoints must agree on a single value for, the
+   DHE algorithm, the HKDF salt, which endpoint is "first", and the SRTP
+   profile (if needed for SRTP).  Each endpoint will have its own value
+   for the DHE Public Key and HKDF info fragment.
+
+3.  Using SDP
+
+   In an SDP offer, an endpoint can add any number of lines in the
+   following format:
+
+   a=dhe-hkdf DHE_ALGORITHM:DHE_PUBLIC_KEY:HKDF_SALT:HKDF_INFO_FRAGMENT
+
+   In and SDP answer, an endpoint can add one such line with a matching
+   DHE_ALGORITHM, HKDF_SALT.  But it will use its own value for
+   DHE_PUBLIC_KEY and HKDK_INFO_FRAGMENT.  The endpoint sending the SDP
+   offer is considered "first".
+
+   DHE_PUBLIC_KEY, HKDF_INFO_FRAMENT, and HKDF_SALT are hex-encoded byte
+   strings.  DHE_ALGORITHM is an ASCII string, such as "X25519", and
+   SRTP_PROFILE is an ASCII string such as "AEAD_AES_256_GCM".
+   HKDF_INFO_FRAMENT and HKDF_SALT can be empty.
+
+   An SDP offer MUST NOT have multiple a=dhe-hkdf lines that differ only
+   by HKDF_INFO_FRAGMENT.
+
+4.  Generating keys from DHE and HKDF
+
+   Assuming that values have been signaled from each endpoint, each
+   endpoint should have the following pieces of information:
+
+   *  A shared DHE algorithm
+
+   *  A local DHE secret
+
+   *  A remote DHE public key
+
+   *  Which endoint is "first" and which is "second"
+
+   *  A "first" HKDF info fragment (the HKDF info fragment of the
+      "first" endpoint)
+
+   *  A "second" HKDF info fragment (the HKDF info fragment of the
+      "second" endpoint)
+
+   Using these, each endpoint derives keys in the following way:
+
+   1.  Derive a shared secret using the DHE algorithm with the local DHE
+       secret and remote DHE public key.
+
+   2.  Create a shared HKDF info by concatentating the first HKDF info
+       framgent and the second HKDF info fragment.
+
+   3.  Expand the shared secret by doing an HKDF expansion using the
+       shared secret, the HKDF salt, and shared HKDF info.
+
+Contributors
+
+   *  Peter Thatcher
+
+Author's Address
+
+   Peter Thatcher
+   Microsoft
+   Email: pthatcher@microsoft.com
