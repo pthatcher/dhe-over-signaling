@@ -94,6 +94,16 @@ Using these, each endpoint derives keys in the following way:
 2. Create a shared HKDF info by concatentating the first HKDF info framgent and the second HKDF info fragment.
 3. Expand the shared secret by doing an HKDF expansion using the shared secret, the HKDF salt, and shared HKDF info.
 
+# Use with SRTP 
+
+When using DTLS with SRTP, endpoints can use DTLS-SRTP to get SRTP keys.
+
+When not using DTLS, the DHE can still be done over signaling and the SRTP keys derived in the same way.
+In this case, one extra piece over information needs to be negotiated between the clients,
+perhaps through signaling: the SRTP profile.  Using the SRTP profile and the generation of keys from
+DHE over signaling, SRTP keys can be derived without doing DTLS, and without sending the keys
+over signaling.
+
 
 # Contributors
 {:numbered="false"}
